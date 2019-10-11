@@ -115,7 +115,10 @@ void ServerImpl::OnRun() {
     // - command_to_execute: last command parsed out of stream
     // - arg_remains: how many bytes to read from stream to get command argument
     // - argument_for_command: buffer stores argument
-
+    std::size_t arg_remains;
+    Protocol::Parser parser;
+    std::string argument_for_command;
+    std::unique_ptr<Execute::Command> command_to_execute;
     while (running.load()) {
         _logger->debug("waiting for connection...");
 
