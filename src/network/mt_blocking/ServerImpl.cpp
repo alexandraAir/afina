@@ -85,7 +85,6 @@ void ServerImpl::Stop() {
     running.store(false);
     shutdown(_server_socket, SHUT_RDWR);
 
-
     for (auto socket : _client_sockets) {
         shutdown(socket, SHUT_RD);
     }
@@ -105,9 +104,6 @@ void ServerImpl::Join() {
         _cv.wait(_lock);
     }
 
-    for(auto socket : _client_sockets) {
-        close(socket);
-    }
 
 }
 
@@ -146,7 +142,7 @@ void ServerImpl::OnRun() {
         // Configure read timeout
         {
             struct timeval tv;
-            tv.tv_sec = 0; // TODO: make it configurable
+            tv.tv_sec = 5; // TODO: make it configurable
             tv.tv_usec = 0;
             setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
         }
