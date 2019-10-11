@@ -20,6 +20,7 @@ namespace MTblocking {
 /**
  * # Network resource manager implementation
  * Server that is spawning a separate thread for each connection
+ *
  */
 class ServerImpl : public Server {
 public:
