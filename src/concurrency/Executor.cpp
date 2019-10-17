@@ -37,6 +37,8 @@ namespace Concurrency {
 
        }
 
+       state = State::kStopped;
+
     }
 
     void perform(Executor *executor) {
