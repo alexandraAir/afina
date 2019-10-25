@@ -85,6 +85,7 @@ void ServerImpl::Stop() {
     running.store(false);
     shutdown(_server_socket, SHUT_RDWR);
 
+    std::unique_lock<std::mutex> _lock_cs(_mutex_cs);
     for (auto socket : _client_sockets) {
         shutdown(socket, SHUT_RD);
     }
@@ -97,13 +98,9 @@ void ServerImpl::Join() {
 
     assert(_thread.joinable());
     _thread.join();
-    close(_server_socket);
 
-    std::unique_lock<std::mutex> _lock(_mutex);
-    while (_worker.load()) {
-        _cv.wait(_lock);
-    }
-
+    std::unique_lock<std::mutex> _lock_cv(_mutex_cv);
+    _cv.wait(_lock_cv);
 
 }
 
@@ -166,9 +163,9 @@ void ServerImpl::OnRun() {
         }
     }
 
-
-    // Cleanup on exit..
     _logger->warn("Network stopped");
+    close(_server_socket);
+
 }
 
 void ServerImpl::Worker(int client_socket ) {
@@ -258,10 +255,17 @@ void ServerImpl::Worker(int client_socket ) {
         // We are done with this connection
 
         close(client_socket);
-        _client_sockets.erase(client_socket);
+        {
+            std::unique_lock<std::mutex> _lock_cs(_mutex_cs);
+            _client_sockets.erase(client_socket);
+        }
 
         _worker--;
-        _cv.notify_one();
+        if (!_worker) {
+            std::unique_lock<std::mutex> _lock_cv(_mutex_cv);
+            _cv.notify_one();
+        }
+
 
 }
 
