@@ -61,6 +61,7 @@ private:
 
     std::mutex _mutex_cs;
     std::mutex _mutex_cv;
+    std::mutex _mutex_cond;
     uint32_t _max_worker;
     std::atomic<int> _worker;
     std::set<int> _client_sockets;

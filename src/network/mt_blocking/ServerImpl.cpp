@@ -82,7 +82,10 @@ void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
 
 // See Server.h
 void ServerImpl::Stop() {
-    running.store(false);
+    {
+        std::unique_lock<std::mutex> lock(_mutex_cond);
+        running.store(false);
+    }
     shutdown(_server_socket, SHUT_RDWR);
 
     std::unique_lock<std::mutex> _lock_cs(_mutex_cs);
@@ -150,11 +153,16 @@ void ServerImpl::OnRun() {
 
         // TODO: Start new thread and process data from/to connection
         {
-
-            if (_worker < _max_worker) {
+            std::unique_lock<std::mutex> lock(_mutex_cond);
+            if (running.load() &&  _worker < _max_worker) {
                 _worker++;
                 std::thread(&ServerImpl::Worker, this, client_socket).detach();
-                _client_sockets.insert(client_socket);
+
+                {
+                    std::unique_lock<std::mutex> _lock_cs(_mutex_cs);
+                    _client_sockets.insert(client_socket);
+                }
+
 
             } else {
                 close(client_socket);
