@@ -3,6 +3,8 @@
 
 #include <thread>
 #include <vector>
+#include <set>
+#include "Connection.h"
 
 #include <afina/network/Server.h>
 
@@ -42,6 +44,8 @@ protected:
 private:
     // logger to use
     std::shared_ptr<spdlog::logger> _logger;
+
+    std::set<Connection *> _client_connections;
 
     // Port to listen for new connections, permits access only from
     // inside of accept_thread

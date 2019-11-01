@@ -178,6 +178,13 @@ void ServerImpl::OnRun() {
             }
         }
     }
+
+    for (auto client : _client_connections) {
+        close(client->_socket);
+        client->OnClose();
+        delete client;
+    }
+    _client_connections.clear();
     _logger->warn("Acceptor stopped");
 }
 
