@@ -102,6 +102,7 @@ private:
      * Mutex to protect state below from concurrent modification
      */
     std::mutex mutex;
+    std::mutex mutex_;
 
     /**
      * Conditional variable to await new data in case of empty queue
