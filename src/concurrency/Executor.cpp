@@ -83,6 +83,7 @@ namespace Concurrency {
                 std::cout << exp.what() << std::endl;
 
             }
+            executor->working_threads--;
 
 
 
