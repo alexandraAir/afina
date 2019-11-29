@@ -64,10 +64,9 @@ class Executor {
         // Enqueue new task
         tasks.push_back(exec);
 
-        if (working_threads == now_threads && now_threads < hight_watermark) {
+        if (working_threads == threads && threads < hight_watermark) {
             std::thread(perform, this).detach();
-            now_threads++;
-            working_threads++;
+            threads++;
         }
 
         empty_condition.notify_one();
@@ -78,7 +77,7 @@ private:
 
     std::string name;
 
-    int now_threads = 0; //now working and sleeping threads
+    int threads = 0; //now working and sleeping threads
     int working_threads = 0; //now working threads
 
     int low_watermark;
@@ -102,7 +101,6 @@ private:
      * Mutex to protect state below from concurrent modification
      */
     std::mutex mutex;
-    std::mutex mutex_;
 
     /**
      * Conditional variable to await new data in case of empty queue

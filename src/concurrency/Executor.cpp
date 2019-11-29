@@ -1,4 +1,5 @@
 #include <afina/concurrency/Executor.h>
+#include <iostream>
 
 namespace Afina {
 namespace Concurrency {
@@ -11,10 +12,10 @@ namespace Concurrency {
         std::lock_guard<std::mutex> lock(mutex);
         for (int i = 0; i < low_watermark; i++) {
             std::thread(perform, this).detach();
-            working_threads++;
+            threads++;
 
         }
-        now_threads = working_threads;
+
         state = State::kRun;
     }
 
@@ -25,14 +26,18 @@ namespace Concurrency {
 
     void Executor::Stop(bool await) {
 
-
+       std::unique_lock<std::mutex> lock(mutex);
        state = State::kStopping;
+
+
+       if (working_threads == 0) {
+           state = State::kStopped;
+       }
+
        empty_condition.notify_all();
 
-
        if (await) {
-           std::unique_lock<std::mutex> _lock(mutex_);
-           end_condition.wait(_lock, [this]{ return now_threads == 0; });
+           end_condition.wait(lock, [this] { return working_threads == 0; });
 
        }
 
@@ -41,11 +46,11 @@ namespace Concurrency {
     }
 
     void perform(Executor *executor) {
+
         std::function<void()> task;
 
         while(true) {
             std::unique_lock<std::mutex> lock(executor->mutex);
-            executor->working_threads--;
 
             bool result = executor->empty_condition.wait_for(lock, executor->idle_time,
                             [executor]{ return !(executor->tasks.empty()) || (executor->state != Executor::State::kRun);});
@@ -53,7 +58,7 @@ namespace Concurrency {
                     if (executor->state == Executor::State::kRun || (executor->state == Executor::State::kStopping && !executor->tasks.empty())) {
                         task = executor->tasks.front();
                         executor->tasks.pop_front();
-                        executor->now_threads++;
+                        executor->working_threads++;
 
 
                     } else {
@@ -64,17 +69,21 @@ namespace Concurrency {
                     }
                     break;
             } else {
-                if (executor->now_threads > executor->low_watermark) {
-                    executor->now_threads--;
+                if (executor->threads > executor->low_watermark) {
+                    executor->threads--;
                     break;
 
 
             }
 
-
-
         }
-        task();
+            try {
+                task();
+            } catch(std::exception &exp) {
+                std::cout << exp.what() << std::endl;
+
+            }
+
 
 
     }
