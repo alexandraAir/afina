@@ -30,18 +30,18 @@ namespace Concurrency {
        state = State::kStopping;
 
 
-       if (working_threads == 0) {
+       if (threads == 0) {
            state = State::kStopped;
+           return;
        }
 
        empty_condition.notify_all();
 
        if (await) {
-           end_condition.wait(lock, [this] { return working_threads == 0; });
+           end_condition.wait(lock, [this] { return this->state == State::kStopped; });
 
        }
 
-       state = State::kStopped;
 
     }
 
@@ -62,8 +62,9 @@ namespace Concurrency {
 
 
                     } else {
-                        executor->working_threads--;
+
                         if (executor->working_threads == 0) {
+                            executor->state == State::kStopped;
                             executor->end_condition.notify_one();
                         }
                     }
@@ -71,24 +72,20 @@ namespace Concurrency {
             } else {
                 if (executor->threads > executor->low_watermark) {
                     executor->threads--;
-                    break;
-
+                }
 
             }
 
-        }
             try {
                 task();
-            } catch(std::exception &exp) {
-                std::cout << exp.what() << std::endl;
+            } catch(std::exception &exp) {}
 
-            }
             executor->working_threads--;
 
 
 
     }
 
-}
+    }
 }
 } // namespace Afina
