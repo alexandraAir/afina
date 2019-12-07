@@ -76,15 +76,15 @@ namespace Concurrency {
 
             }
 
-            try {
-                task();
-            } catch(std::exception &exp) {}
 
-            executor->working_threads--;
+        }
+        try {
+            task();
+        } catch(std::exception &exp) {}
+
+        executor->working_threads--;
 
 
-
-    }
 
     }
 }
