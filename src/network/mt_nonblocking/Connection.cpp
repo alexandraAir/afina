@@ -128,7 +128,7 @@ void Connection::DoWrite() {
 
     iovecs[0].iov_base = static_cast<char *>(iovecs[0].iov_base) + cur_pos;
 
-    int write_bytes = write(_socket, iovecs, size);
+    int write_bytes = writev(_socket, iovecs, size);
 
     if (write_bytes <= 0) {
          _is_alive = false;
@@ -143,7 +143,7 @@ void Connection::DoWrite() {
            i++;
            cur_pos -= iovecs[i].iov_len;
     }
-    buffer.erase(buffer.begin(), buffer.begin() + 1);
+    buffer.erase(buffer.begin(), buffer.begin() + i);
     if (buffer.empty()) {
         _event.events =  EPOLLIN | EPOLLRDHUP | EPOLLERR;
     }
