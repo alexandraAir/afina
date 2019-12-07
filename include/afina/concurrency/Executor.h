@@ -8,14 +8,18 @@
 #include <queue>
 #include <string>
 #include <thread>
+#include <chrono>
 
 namespace Afina {
 namespace Concurrency {
 
+class Executor;
+void perform(Executor *executor);;
 /**
  * # Thread pool
  */
 class Executor {
+
     enum class State {
         // Threadpool is fully operational, tasks could be added and get executed
         kRun,
@@ -28,7 +32,8 @@ class Executor {
         kStopped
     };
 
-    Executor(std::string name, int size);
+    Executor(int low_watermark, int hight_watermark, int max_queue_size, std::chrono::milliseconds idle_time);
+
     ~Executor();
 
     /**
@@ -38,6 +43,7 @@ class Executor {
      * In case if await flag is true, call won't return until all background jobs are done and all threads are stopped
      */
     void Stop(bool await = false);
+
 
     /**
      * Add function to be executed on the threadpool. Method returns true in case if task has been placed
@@ -51,17 +57,35 @@ class Executor {
         auto exec = std::bind(std::forward<F>(func), std::forward<Types>(args)...);
 
         std::unique_lock<std::mutex> lock(this->mutex);
-        if (state != State::kRun) {
+        if (state != State::kRun || tasks.size() == max_queue_size) {
             return false;
         }
 
         // Enqueue new task
         tasks.push_back(exec);
+
+        if (working_threads == threads && threads < hight_watermark) {
+            std::thread(perform, this).detach();
+            threads++;
+        }
+
         empty_condition.notify_one();
         return true;
     }
 
 private:
+
+    std::string name;
+
+    int threads = 0; //now working and sleeping threads
+    int working_threads = 0; //now working threads
+
+    int low_watermark;
+    int hight_watermark;
+    int max_queue_size;
+    std::chrono::milliseconds idle_time;
+
+
     // No copy/move/assign allowed
     Executor(const Executor &);            // = delete;
     Executor(Executor &&);                 // = delete;
@@ -83,10 +107,12 @@ private:
      */
     std::condition_variable empty_condition;
 
+    std::condition_variable end_condition;
+
     /**
      * Vector of actual threads that perorm execution
      */
-    std::vector<std::thread> threads;
+
 
     /**
      * Task queue
@@ -97,6 +123,8 @@ private:
      * Flag to stop bg threads
      */
     State state;
+
+
 };
 
 } // namespace Concurrency
